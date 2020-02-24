@@ -1,0 +1,77 @@
+#!/usr/bin/env python3
+
+# Import the necessary libraries to make this code work
+import base64
+import requests
+import signal
+import RPi.GPIO as GPIO
+
+# Define some global variables to allow easy application throughout the code
+## This is used in the code as http://URL:8000/api
+URL = "localhost"
+## The username and password to connect with, these are the defaults
+## NOTE: Change these only if you change them in the player settings
+## Do not remove the leading b before the string
+USERNAME = b"pi"
+PASSWORD = b"pi"
+## File name of the map; you will need to change this to reflect what is set
+## in the web interface for your instance
+FILENAME = "map.png"
+## GPIO pin that is plugged into the button
+GPIO_PIN = 10
+
+# Authorize to the player and receive an authentication token
+def get_token():
+    # Base64 encode the username and password to send via the API
+    encoded = base64.b64encode(USERNAME + b":" + PASSWORD)
+
+    # Define the arguments for the POST request
+    ## We're sending the email, password, and a request for a token as data
+    DATA = {"email": USERNAME, "password": PASSWORD, "getToken": "true"}
+    ## Decoding what we just encoded is misleading; it just means we are
+    ## converting it back to a string. Otherwise, we are accepting and sending
+    ## JSON, so let's define that as such
+    PARAMS = {"Authorization": "Basic " + encoded.decode(), "Content-Type": "application/json", "accept": "application/json"}
+
+    ## Send a POST request to get the session token
+    token = requests.post(url = "http://" + URL + "/api/session", params=PARAMS, data=DATA).json()["token"]
+    return token, encoded
+
+# Play the aforementioned file (opening the map)
+def open_map():
+    # Get the token to use in further requests
+    token, encoded = get_token()
+
+    # Just as before, except now we have a token
+    PARAMS = {"Authorization": "Basic " + encoded.decode(), "accept": "application/json", "x-access-token": "token"}
+    # The filename is in the URL here
+    request = requests.post(url = "http://" + URL + "/api/play/files/play?file=" + FILENAME, params=PARAMS)
+
+# Setup the GPIO port
+def setup_GPIO():
+    # Enable warnings
+    GPIO.setwarnings(True)
+
+    # Use the physical pin numbering
+    GPIO.setmode(GPIO.BOARD)
+
+    # Set our pin to be an input pin
+    GPIO.setup(GPIO_PIN, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
+
+    # When the pin rises, run the open_map() function
+    GPIO.add_event_detect(GPIO_PIN, GPIO.RISING, callback=open_map)
+
+# Catch SIGINT and clean up
+def SIGINT_handler():
+    print("Cleaning up...")
+    exit(0)
+
+# Run this when the script is started but make sure to clean up GPIO when
+# we're done
+if __name__ == "__main__":
+    setup_GPIO()
+
+    signal.signal(signal.SIGINT, SIGINT_handler)
+
+    while True:
+        pass

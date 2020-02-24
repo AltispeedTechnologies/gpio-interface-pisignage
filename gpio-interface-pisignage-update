@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+
+# Download the new copy
+wget -O /tmp/gpio-interface-pisignage http://example.com/gpio-interface-pisignage
+
+# Make it executable
+chmod +x /usr/bin/gpio-interface-pisignage
+
+# Stop the existing service
+systemctl stop gpio-interface-pisignage.service
+
+# Move the new script over
+mv /tmp/gpio-interface-pisignage /usr/bin/gpio-interface-pisignage
+
+# Start the service back up
+systemctl start gpio-interface-pisignage.service

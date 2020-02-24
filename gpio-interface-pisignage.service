@@ -1,0 +1,11 @@
+[Unit]
+Description=Map a button connected to the GPIO pins to a Python script
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/gpio-interface-pisignage
+ExecStop=/usr/bin/gpio-interface-pisignage
+RemainAfterExit=true
+
+[Install]
+WantedBy=multi-user.target
